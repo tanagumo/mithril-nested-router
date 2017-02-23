@@ -98,9 +98,9 @@ router.defineRoutes(document.getElementById('root'), '/', [
 ]);
 ```
 
-By default, when route changes among sub routes, parent component is not recreated.
-In other words, `oninit` of parent component is not invoked when route changes.
-If you want to recreate parent component when sub route changes, set `recreateOnRouteChange` to `true`.
+When defining routes using `Router.prototype.defineRoutes`, changing routes among sub routes doesn't invoke recreation of ancestor components by default.
+In other words, `oninit` and `oncreate` of ancestor components are not invoked.
+If you want to recreate ancestor components when sub route change, set `recreateOnRouteChange` to `true`.
 ```
 // Page component is recreated when routes change among C1 and C2
 router.defineRoutes(document.getElementById('root'), '/c1', [
@@ -123,7 +123,7 @@ router.defineRoutes(document.getElementById('root'), '/c1', [
   ]}
 ]);
 
-console.log(router.reverse('root:c2:g1')); // /c2/g1
+console.log(router.reverse('root:c2:g1'));        // /c2/g1
 ```
 
 You can pass routing parameters to `Router.prototype.reverse` if you defined routes using routing parameters.
@@ -134,8 +134,8 @@ router.defineRoutes(document.getElementById('root'), '/x', [
   ]}
 ]);
 
-console.log(router.reverse('root:content', {content: 'c1'})); // /c1
-console.log(router.reverse('root:content', {content: 'c2'})); // /c2
+console.log(router.reverse('root:content', {content: 'c1'}));        // /c1
+console.log(router.reverse('root:content', {content: 'c2'}));        // /c2
 ```
 
 #### Redirect
@@ -151,14 +151,14 @@ router.defineRoutes(document.getElementById('root'), '/c2/1', [
 ]);
 
 // Change current route to /c1
-router.redirect('root:c1'); 
+router.redirect('root:c1');
 
 // Of course, you can pass routing parameters to redirect method.
 router.redirect('root:c2:d', {d: 3});
 ```
 
 Technically, `Router.prototype.redirect` gets path for name, and just delegate to `m.route.set`.
-So, `Router.prototype.redirect` has same functionality as `m.route.set`. Please refer to [mithril documentation about m.route.set]()
+So, `Router.prototype.redirect` has same functionality as `m.route.set`. Please refer to [mithril documentation about m.route.set](http://mithril.js.org/route.html#mrouteset)
 
 #### Get `m.route`
 `Router.prototype.route` getter return `m.route`. So you can use `Router.prototype.route` instead of `m.route`;
