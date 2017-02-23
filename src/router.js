@@ -10,7 +10,7 @@ const objectAssign = Object.assign ||
                      ((...objs) => objs.reduce((acc, obj) => merge(acc, obj), {}));
 
 const _regExp = new RegExp(String.raw`:([^/.]+\.\.\.|[^/.]+)`, 'g');
-let _reverses = null;
+let _reverses = {};
 
 class Router {
   constructor(m) {
@@ -20,14 +20,14 @@ class Router {
   defineRoutes(root, defaultRoute, routes) {
     const {m} = this;
     const go = routes => routes.reduce((acc, route) => {
-      const {path, name, component, attrs = {}, context, routes, recreateOnRouteChange = false} = route;
+      const {path, name, component, attrs, context, routes, recreateOnRouteChange = false} = route;
       let obj = null;
       if (!routes) {
-        obj = {[path]: [name, (ctx = {}) => m(component, {...ctx, ...attrs})]};
+        obj = {[name]: [path, (ctx = {}) => m(component, {...ctx, ...attrs})]};
       } else {
-        obj = objectEntries(go(routes)).reduce((acc, [p, [n, f]]) => {
-          const k = `${path}${p}`;
-          const v = [`${name}:${n}`,
+        obj = objectEntries(go(routes)).reduce((acc, [n, [p, f]]) => {
+          const k = `${name}:${n}`;
+          const v = [`${path}${p}`,
                      (ctx = {}) =>
                        m(component,
                          objectAssign({...ctx, ...attrs}, recreateOnRouteChange === true ? {key: new Date()} : {}),
@@ -40,7 +40,6 @@ class Router {
     }, {});
 
     const _routes = {};
-    const _paths = {};
     routes.forEach(route => {
       const {path, name, component, onmatch, attrs = {}, context, routes, recreateOnRouteChange = false} = route;
       if (!routes) {
@@ -49,9 +48,9 @@ class Router {
             return m(onmatch ? vnode.tag : component, attrs)
           }
         }, onmatch ? {onmatch} : {});
-        _paths[path] = name;
+        _reverses[name] = path;
       } else {
-        objectEntries(go(routes)).forEach(([p, [n, f]]) => {
+        objectEntries(go(routes)).forEach(([n, [p, f]]) => {
           _routes[`${path}${p}`] = objectAssign({
             render(vnode) {
               return m(onmatch ? vnode.tag : component,
@@ -59,12 +58,10 @@ class Router {
                        f(context));
             }
           }, onmatch ? {onmatch} : {});
-          _paths[`${path}${p}`] = `${name}:${n}`;
+          _reverses[`${name}:${n}`] = `${path}${p}`;
         });
       }
     });
-    _reverses = objectEntries(_paths).reduce(
-      (acc, [path, name]) => ({...acc, [name]: path}), {});
     this.m.route(root, defaultRoute, _routes);
   }
 
