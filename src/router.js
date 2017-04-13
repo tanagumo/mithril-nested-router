@@ -10,6 +10,10 @@ const objectAssign = Object.assign ||
                      ((...objs) => objs.reduce((acc, obj) => merge(acc, obj), {}));
 
 const _regExp = new RegExp(String.raw`:([^/.]+\.\.\.|[^/.]+)`, 'g');
+
+const makeAttrs = ({key, ...rest} = {}) =>
+  objectAssign(rest, key ? {key: typeof key === 'function' ? key() : key} : {});
+
 let _reverses = {};
 
 class Router {
@@ -19,50 +23,39 @@ class Router {
 
   defineRoutes(root, defaultRoute, routes) {
     const {m} = this;
-    const go = routes => routes.reduce((acc, route) => {
-      const {path, name, component, attrs, context, routes, recreateOnRouteChange = false} = route;
-      let obj = null;
-      if (!routes) {
-        obj = {[name]: [path, (ctx = {}) => m(component, {...ctx, ...attrs})]};
-      } else {
-        obj = objectEntries(go(routes)).reduce((acc, [n, [p, f]]) => {
-          const k = `${name}:${n}`;
-          const v = [`${path}${p}`,
-                     (ctx = {}) =>
-                       m(component,
-                         objectAssign({...ctx, ...attrs}, recreateOnRouteChange === true ? {key: new Date()} : {}),
-                         f({...ctx, ...context}))
-                    ];
-          return {...acc, [k]: v};
-        }, {});
-      }
+    const go = (routes, depth) => routes.reduce((acc, route) => {
+      const {path, name, component, attrs, context, routes, onmatch} = route;
+      const obj = routes
+        ? objectEntries(go(routes, depth + 1)).reduce((acc, [n, [p, f]]) => {
+            const k = `${name}:${n}`;
+            const v = [`${path}${p}`,
+                        depth == 0
+                          ? objectAssign({
+                              render(vnode) {
+                                return m(onmatch ? vnode.tag : component, makeAttrs(attrs), f(context));
+                              }
+                            }, onmatch ? {onmatch} : {})
+                          : (ctx = {}) => m(component, {...ctx, ...makeAttrs(attrs)}, f({...ctx, ...context}))];
+            return {...acc, [k]: v};
+          }, {})
+        : {[name]: [path,
+                    depth == 0
+                      ? objectAssign({
+                          render(vnode) {
+                            return m(onmatch ? vnode.tag : component, makeAttrs(attrs));
+                          }
+                        }, onmatch ? {onmatch} : {})
+                      : (ctx = {}) => m(component, {...ctx, ...makeAttrs(attrs)})]};
       return {...acc, ...obj};
     }, {});
 
-    const _routes = {};
-    routes.forEach(route => {
-      const {path, name, component, onmatch, attrs = {}, context, routes, recreateOnRouteChange = false} = route;
-      if (!routes) {
-        _routes[path] = objectAssign({
-          render(vnode) {
-            return m(onmatch ? vnode.tag : component, attrs)
-          }
-        }, onmatch ? {onmatch} : {});
-        _reverses[name] = path;
-      } else {
-        objectEntries(go(routes)).forEach(([n, [p, f]]) => {
-          _routes[`${path}${p}`] = objectAssign({
-            render(vnode) {
-              return m(onmatch ? vnode.tag : component,
-                       objectAssign(attrs, recreateOnRouteChange === true ? {key: new Date()} : {}),
-                       f(context));
-            }
-          }, onmatch ? {onmatch} : {});
-          _reverses[`${name}:${n}`] = `${path}${p}`;
-        });
-      }
-    });
-    this.m.route(root, defaultRoute, _routes);
+    [_reverses, routes] = Object.entries(go(routes, 0)).reduce(([l, r], [n, [p, o]]) => {
+      l[n] = p;
+      r[p] = o;
+      return [l, r];
+    }, [{}, {}]);
+
+    m.route(root, defaultRoute, routes);
   }
 
   redirect(name, data, options) {

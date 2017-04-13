@@ -1,6 +1,6 @@
 {
   "name": "mithril-nested-router",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "mithril router with nested routing, reverse and redirect functionality",
   "main": "lib/index.js",
   "scripts": {

@@ -13,6 +13,7 @@ You can create router using `Router.create`.
 Only first `Router.create` call makes a singleton router instance.
 
 Once you have created router instance, you can retrieve it later using `Router.getInstance()`.
+
 ```
 const m = require('mithril');
 const Router = require('mithril-nested-router');
@@ -26,6 +27,7 @@ const router3 = Router.getInstance();
 #### Define routes
 You can define nested routes using `Router.prototype.defineRoutes`.
 Child components are injected into `vnode.children` of Parent component.
+
 ```
 // Parent component
 const Page = {
@@ -59,6 +61,7 @@ router.defineRoutes(document.getElementById('root'), '/c1', [
 ```
 
 You can pass attrs to a Component using `attrs` property.
+
 ```
 router.defineRoutes(document.getElementById('root'), '/', [
   {path: '/', name: 'root', component: Component, attrs: {a: 1, b: 2}}
@@ -75,6 +78,7 @@ const Component = {
 You can also use `context` property with `routes` property. Context propagates to sub routes.
 The example below, C1, C2 and G1 share the same context defined within GrantParent. Context is injected into `vnode.attrs`.
 An attrs or contexts defined within descendants override the same property of context defined within ancestors.
+
 ```
 router.defineRoutes(document.getElementById('root'), '/c1', [
   {path: '/', name: 'root', component: GrandParent, context: {a: 1}, routes: [
@@ -86,6 +90,7 @@ router.defineRoutes(document.getElementById('root'), '/c1', [
 ]);
 ```
 You can use `onmatch` instead of `component` on top level route definition. About `onmatch`, please refer to [mithril document about RouteResolver](http://mithril.js.org/route.html#routeresolver).
+
 ```
 router.defineRoutes(document.getElementById('root'), '/', [
   {path: '/',
@@ -97,22 +102,17 @@ router.defineRoutes(document.getElementById('root'), '/', [
   }
 ]);
 ```
+If you define a parameterized route, going from the parameterized route to the same route with a different parameter (e.g. going from `/page/1` to `/page/2` given a route `/page/:id`) doesn't invoke component recreation. In other words, `oninit` and `oncreate` of the component don't get called. If you want to recreate a component, you can use `key`. If you set a function as `key` value, an invocation of the function is done after a route was resolved.
 
-When defining routes using `Router.prototype.defineRoutes`, changing routes among sub routes doesn't invoke recreation of ancestor components by default.
-In other words, `oninit` and `oncreate` of ancestor components are not invoked.
-If you want to recreate ancestor components when sub route change, set `recreateOnRouteChange` to `true`.
 ```
-// Page component is recreated when routes change among C1 and C2
-router.defineRoutes(document.getElementById('root'), '/c1', [
-  {path: '/', name: 'root', component: Page, recreateOnRouteChange: true, routes: [
-    {path: 'c1', name: 'c1', component: C1},
-    {path: 'c2', name: 'c2', component: C2},
-  ]}
+router.defineRoutes(document.getElementById('root'), '/page/1', [
+  {path: '/page/:id', name: 'page', component: Page, attrs: {key: () => router.route.param('id')}},
 ]);
 ```
 
 #### Get path for name
 You can use `Router.prototype.reverse` to get path for name.
+
 ```
 router.defineRoutes(document.getElementById('root'), '/c1', [
   {path: '/', name: 'root', component: GrandParent, routes: [
@@ -127,6 +127,7 @@ console.log(router.reverse('root:c2:g1'));        // /c2/g1
 ```
 
 You can pass routing parameters to `Router.prototype.reverse` if you defined routes using routing parameters.
+
 ```
 router.defineRoutes(document.getElementById('root'), '/x', [
   {path: '/', name: 'root', component: Layout, routes: [
@@ -140,6 +141,7 @@ console.log(router.reverse('root:content', {content: 'c2'}));        // /c2
 
 #### Redirect
 You can use `Router.prototype.redirect` to change route.
+
 ```
 router.defineRoutes(document.getElementById('root'), '/c2/1', [
   {path: '/', name: 'root', component: Layout, routes: [
@@ -165,4 +167,4 @@ So, `Router.prototype.redirect` has same functionality as `m.route.set`. Please 
 
 ## License
 
-Licensed under [The MIT License](LICENSE).
+MIT
